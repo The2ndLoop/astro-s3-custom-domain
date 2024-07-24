@@ -4,7 +4,7 @@ Description: Data Store
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project. DO NOT USE UPPERCASE BUT KEBAB.
+    Description: The name of the project. USE KEBAB-CASE ONLY.
 
 Resources:
   S3OriginBucket:

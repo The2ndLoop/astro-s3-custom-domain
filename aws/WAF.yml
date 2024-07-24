@@ -4,7 +4,17 @@ Description: WAF
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project.
+    Description: The name of the project. USE KEBAB-CASE ONLY.
+  AllowPublicAccess:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    Description: If this param is false, only the allowed IPs can access.
+
+Conditions:
+  AllowPublicAccess: !Equals [!Ref AllowPublicAccess, true]
 
 Resources:
   AllowedIPSet:
@@ -19,7 +29,7 @@ Resources:
   WebACL:
     Type: "AWS::WAFv2::WebACL"
     Properties: 
-      DefaultAction: { Block: {} }
+      DefaultAction: !If [AllowPublicAccess, { Allow: {} }, { Block: {} }]
       Name: !Sub "${ProjectName}-web-acl"
       Scope: "CLOUDFRONT"
       VisibilityConfig: 
@@ -38,24 +48,29 @@ Resources:
             CloudWatchMetricsEnabled: true
             SampledRequestsEnabled: true
             MetricName: "AWSManagedRulesAmazonIpReputationList"
-        - Name: "AllowedIPSet"
-          Priority: 20
-          Action: { Allow: {} }
-          Statement: 
-            IPSetReferenceStatement:
-              Arn: !GetAtt AllowedIPSet.Arn
-          VisibilityConfig: 
-            CloudWatchMetricsEnabled: true
-            SampledRequestsEnabled: true
-            MetricName: "AllowedIPSet"
+        - !If 
+          - AllowPublicAccess
+          - !Ref AWS::NoValue
+          - Name: "AllowedIPSet"
+            Priority: 20
+            Action: { Allow: {} }
+            Statement:
+              IPSetReferenceStatement:
+                Arn: !GetAtt AllowedIPSet.Arn
+            VisibilityConfig: 
+              CloudWatchMetricsEnabled: true
+              SampledRequestsEnabled: true
+              MetricName: "AllowedIPSet"
 
   WAFLogConfig:
     Type: AWS::WAFv2::LoggingConfiguration
     Properties:
       ResourceArn: !GetAtt WebACL.Arn
-      LogDestinationConfigs: [ !ImportValue S3WAFLogsBucketArn ]
+      LogDestinationConfigs: [ Fn::ImportValue: !Sub "${ProjectName}-S3WAFLogsBucketArn" ]
 
 Outputs:
   WebACLArn:
     Description: "The ARN of the WAF Web ACL"
     Value: !GetAtt WebACL.Arn
+    Export:
+      Name: !Sub ${ProjectName}-WebACLArn

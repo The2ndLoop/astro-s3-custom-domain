@@ -2,25 +2,46 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Template to create CloudFront distribution with S3 origin using OAC, ACM SSL certificate, and WAF protection
 
 Parameters:
-  DomainName:
-    Type: String
-    Description: The domain name for the CloudFront distribution
-  HostedZoneId:
-    Type: String
-    Description: The Route53 Hosted Zone ID for the domain
   ProjectName:
     Type: String
-    Description: The name of the project.
+    Description: The name of the project. USE KEBAB-CASE ONLY.
 
 Resources:
   Oac:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub ${ProjectName}-oac
+        Name: !Sub "${ProjectName}-oac"
         OriginAccessControlOriginType: "s3"
         SigningBehavior: always
         SigningProtocol: sigv4
+
+  S3OriginBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketName" }
+      PolicyDocument:
+        Statement:
+          - Sid: allow-cloudfront-to-get-object
+            Effect: Allow
+            Principal: 
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub
+              - ${BucketArn}/*
+              - BucketArn: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+          - Sid: allow-cloudfront-to-list-bucket # to avoid getting 403 error response instead of 404
+            Effect: Allow
+            Principal: 
+              Service: cloudfront.amazonaws.com
+            Action: s3:ListBucket
+            Resource: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -29,7 +50,7 @@ Resources:
         Comment: !Sub "${ProjectName}-cloudfront"
         Origins:
           - Id: S3Origin
-            DomainName: !ImportValue S3OriginBucketDomainName
+            DomainName: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketDomainName" }
             OriginAccessControlId: !GetAtt Oac.Id
             S3OriginConfig:
               OriginAccessIdentity: ""
@@ -54,15 +75,15 @@ Resources:
         IPV6Enabled: true
         HttpVersion: http2
         PriceClass: PriceClass_100
-        WebACLId: !ImportValue WebACLArn
+        WebACLId: { Fn::ImportValue: !Sub "${ProjectName}-WebACLArn" }
         ViewerCertificate:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2021
-          AcmCertificateArn: !ImportValue CertificateArn
+          AcmCertificateArn: { Fn::ImportValue: !Sub "${ProjectName}-CertificateArn" }
         Aliases:
-          - !Ref DomainName
+          - { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
         Logging:
-          Bucket: !ImportValue S3LogsBucketDomainName
+          Bucket: { Fn::ImportValue: !Sub "${ProjectName}-S3LogsBucketDomainName" }
           IncludeCookies: true
           Prefix: CloudFront 
       Tags: [{ Key: Project, Value: !Ref ProjectName }] 
@@ -70,8 +91,8 @@ Resources:
   Route53RecordSet:
     Type: AWS::Route53::RecordSet
     Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
+      HostedZoneId: { Fn::ImportValue: !Sub "${ProjectName}-HostedZoneId" }
+      Name: { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
       Type: A
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
