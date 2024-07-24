@@ -57,6 +57,6 @@ Outputs:
     Description: Name of the logs bucket
     Value: !Ref S3LogsBucket
 
-  S3WAFLogsBucketName:
+  S3WAFLogsBucketArn:
     Description: Name of the WAF logs bucket
-    Value: !Ref S3WAFLogsBucket
+    Value: !GetAtt S3WAFLogsBucket.Arn
