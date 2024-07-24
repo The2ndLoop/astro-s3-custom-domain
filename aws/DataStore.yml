@@ -49,14 +49,14 @@ Resources:
       Tags: [{ Key: Project, Value: !Ref ProjectName }]
 
 Outputs:
-  S3OriginBucketName:
-    Description: Name of the origin bucket
-    Value: !Ref S3OriginBucket
+  S3OriginBucketDomainName:
+    Description: Domain name of the origin bucket
+    Value: !GetAtt  S3OriginBucket.DomainName
 
-  S3LogsBucketName:
-    Description: Name of the logs bucket
-    Value: !Ref S3LogsBucket
+  S3LogsBucketDomainName:
+    Description: Domain name of the logs bucket
+    Value: !GetAtt  S3LogsBucket.DomainName
 
   S3WAFLogsBucketArn:
-    Description: Name of the WAF logs bucket
+    Description: Arn of the WAF logs bucket
     Value: !GetAtt S3WAFLogsBucket.Arn

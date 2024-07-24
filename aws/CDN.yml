@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to create CloudFront distribution with S3 origin using OAC, ACM SSL certificate, and WAF protection
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: The domain name for the CloudFront distribution
+  HostedZoneId:
+    Type: String
+    Description: The Route53 Hosted Zone ID for the domain
+  ProjectName:
+    Type: String
+    Description: The name of the project.
+
+Resources:
+  Oac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${ProjectName}-oac
+        OriginAccessControlOriginType: "s3"
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${ProjectName}-cloudfront"
+        Origins:
+          - Id: S3Origin
+            DomainName: !ImportValue S3OriginBucketDomainName
+            OriginAccessControlId: !GetAtt Oac.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          AllowedMethods: 
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 #CachingOptimized
+          Compress: true
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponsePagePath: /index.html
+            ResponseCode: 200
+            ErrorCachingMinTTL: 0
+        Enabled: true
+        IPV6Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        WebACLId: !ImportValue WebACLArn
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+          AcmCertificateArn: !ImportValue CertificateArn
+        Aliases:
+          - !Ref DomainName
+        Logging:
+          Bucket: !ImportValue S3LogsBucketDomainName
+          IncludeCookies: true
+          Prefix: CloudFront 
+      Tags: [{ Key: Project, Value: !Ref ProjectName }] 
+
+  Route53RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront Hosted Zone ID
