@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: S3
+Description: Data Store
 
 Parameters:
   ProjectName:
