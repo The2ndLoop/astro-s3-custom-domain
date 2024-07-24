@@ -4,7 +4,7 @@ Description: Data Store
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project.
+    Description: The name of the project. DO NOT USE UPPERCASE BUT KEBAB.
 
 Resources:
   S3OriginBucket:
@@ -49,14 +49,32 @@ Resources:
       Tags: [{ Key: Project, Value: !Ref ProjectName }]
 
 Outputs:
+  S3OriginBucketName:
+    Description: Name of the origin bucket
+    Value: !Ref S3OriginBucket
+    Export:
+      Name: !Sub ${ProjectName}-S3OriginBucketName
+  
   S3OriginBucketDomainName:
     Description: Domain name of the origin bucket
-    Value: !GetAtt  S3OriginBucket.DomainName
+    Value: !GetAtt S3OriginBucket.DomainName
+    Export:
+      Name: !Sub ${ProjectName}-S3OriginBucketDomainName
+
+  S3OriginBucketArn:
+    Description: Arn of the origin bucket
+    Value: !GetAtt S3OriginBucket.Arn
+    Export:
+      Name: !Sub ${ProjectName}-S3OriginBucketArn
 
   S3LogsBucketDomainName:
     Description: Domain name of the logs bucket
-    Value: !GetAtt  S3LogsBucket.DomainName
+    Value: !GetAtt S3LogsBucket.DomainName
+    Export:
+      Name: !Sub ${ProjectName}-S3LogsBucketDomainName
 
   S3WAFLogsBucketArn:
     Description: Arn of the WAF logs bucket
     Value: !GetAtt S3WAFLogsBucket.Arn
+    Export:
+      Name: !Sub ${ProjectName}-S3WAFLogsBucketArn
