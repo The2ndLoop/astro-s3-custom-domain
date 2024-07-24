@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: WAF
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: The name of the project.
+
+Resources:
+  AllowedIPSet:
+    Type: "AWS::WAFv2::IPSet"
+    Properties: 
+      Name: !Sub "${ProjectName}-allowed-ip-set"
+      Scope: "CLOUDFRONT"
+      IPAddressVersion: "IPV4"
+      Addresses: 
+        - 192.168.0.1/32
+
+  WebACL:
+    Type: "AWS::WAFv2::WebACL"
+    Properties: 
+      DefaultAction: { Block: {} }
+      Name: !Sub "${ProjectName}-web-acl"
+      Scope: "CLOUDFRONT"
+      VisibilityConfig: 
+        CloudWatchMetricsEnabled: true
+        SampledRequestsEnabled: true
+        MetricName: !Sub "${ProjectName}-web-acl"
+      Rules: 
+        - Name: "AWSManagedRulesAmazonIpReputationList"
+          Priority: 10
+          OverrideAction: { None: {} } 
+          Statement: 
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesAmazonIpReputationList"
+          VisibilityConfig: 
+            CloudWatchMetricsEnabled: true
+            SampledRequestsEnabled: true
+            MetricName: "AWSManagedRulesAmazonIpReputationList"
+        - Name: "AllowedIPSet"
+          Priority: 20
+          Action: { Allow: {} }
+          Statement: 
+            IPSetReferenceStatement:
+              Arn: !GetAtt AllowedIPSet.Arn
+          VisibilityConfig: 
+            CloudWatchMetricsEnabled: true
+            SampledRequestsEnabled: true
+            MetricName: "AllowedIPSet"
+
+  WAFLogConfig:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Properties:
+      ResourceArn: !GetAtt WebACL.Arn
+      LogDestinationConfigs: [ !ImportValue S3WAFLogsBucketArn ]
+
+Outputs:
+  WebACLArn:
+    Description: "The ARN of the WAF Web ACL"
+    Value: !GetAtt WebACL.Arn
