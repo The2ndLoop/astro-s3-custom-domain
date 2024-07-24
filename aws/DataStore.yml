@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: S3
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: The name of the project.
+
+Resources:
+  S3OriginBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-origin-bucket
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+
+  S3LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-logs-bucket
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerPreferred }]
+      LifecycleConfiguration:
+        Rules:
+          - Id: !Sub ${ProjectName}-logs-lifecycle-rule
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+            ExpirationInDays: 90
+      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+
+  S3WAFLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub aws-waf-logs-${ProjectName}-bucket
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerPreferred }]
+      LifecycleConfiguration:
+        Rules:
+          - Id: !Sub ${ProjectName}-waf-logs-lifecycle-rule
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+            ExpirationInDays: 90
+      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+
+Outputs:
+  S3OriginBucketName:
+    Description: Name of the origin bucket
+    Value: !Ref S3OriginBucket
+
+  S3LogsBucketName:
+    Description: Name of the logs bucket
+    Value: !Ref S3LogsBucket
+
+  S3WAFLogsBucketName:
+    Description: Name of the WAF logs bucket
+    Value: !Ref S3WAFLogsBucket
