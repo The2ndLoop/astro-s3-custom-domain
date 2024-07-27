@@ -5,16 +5,16 @@ Parameters:
   ProjectName:
     Type: String
     Description: "The name of the project. USE KEBAB-CASE ONLY."
-  AllowPublicAccess:
+  UseIPRestriction:
     Type: String
     AllowedValues:
       - true
       - false
     Default: false
-    Description: "If this param is false, only the allowed IPs can access."
+    Description: "If this param is true, only the allowed IPs can access."
 
 Conditions:
-  AllowPublicAccess: !Equals [!Ref AllowPublicAccess, true]
+  UseIPRestriction: !Equals [!Ref UseIPRestriction, true]
 
 Resources:
   AllowedIPSet:
@@ -29,7 +29,7 @@ Resources:
   WebACL:
     Type: "AWS::WAFv2::WebACL"
     Properties: 
-      DefaultAction: !If [AllowPublicAccess, { Allow: {} }, { Block: {} }]
+      DefaultAction: !If [UseIPRestriction, { Block: {} }, { Allow: {} }]
       Name: !Sub "${ProjectName}-web-acl"
       Scope: "CLOUDFRONT"
       VisibilityConfig: 
@@ -49,8 +49,7 @@ Resources:
             SampledRequestsEnabled: true
             MetricName: "AWSManagedRulesAmazonIpReputationList"
         - !If 
-          - AllowPublicAccess
-          - !Ref AWS::NoValue
+          - UseIPRestriction
           - Name: "AllowedIPSet"
             Priority: 20
             Action: { Allow: {} }
@@ -61,6 +60,7 @@ Resources:
               CloudWatchMetricsEnabled: true
               SampledRequestsEnabled: true
               MetricName: "AllowedIPSet"
+          - !Ref AWS::NoValue
 
   WAFLogConfig:
     Type: "AWS::WAFv2::LoggingConfiguration"
