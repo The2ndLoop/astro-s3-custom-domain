@@ -1,17 +1,17 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: WAF
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WAF"
 
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project. USE KEBAB-CASE ONLY.
+    Description: "The name of the project. USE KEBAB-CASE ONLY."
   AllowPublicAccess:
     Type: String
     AllowedValues:
       - true
       - false
     Default: false
-    Description: If this param is false, only the allowed IPs can access.
+    Description: "If this param is false, only the allowed IPs can access."
 
 Conditions:
   AllowPublicAccess: !Equals [!Ref AllowPublicAccess, true]
@@ -24,7 +24,7 @@ Resources:
       Scope: "CLOUDFRONT"
       IPAddressVersion: "IPV4"
       Addresses: 
-        - 192.168.0.1/32
+        - "192.168.0.1/32"
 
   WebACL:
     Type: "AWS::WAFv2::WebACL"
@@ -63,7 +63,7 @@ Resources:
               MetricName: "AllowedIPSet"
 
   WAFLogConfig:
-    Type: AWS::WAFv2::LoggingConfiguration
+    Type: "AWS::WAFv2::LoggingConfiguration"
     Properties:
       ResourceArn: !GetAtt WebACL.Arn
       LogDestinationConfigs: [ Fn::ImportValue: !Sub "${ProjectName}-S3WAFLogsBucketArn" ]
@@ -73,4 +73,4 @@ Outputs:
     Description: "The ARN of the WAF Web ACL"
     Value: !GetAtt WebACL.Arn
     Export:
-      Name: !Sub ${ProjectName}-WebACLArn
+      Name: !Sub "${ProjectName}-WebACLArn"

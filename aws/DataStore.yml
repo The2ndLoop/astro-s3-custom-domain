@@ -1,80 +1,80 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: Data Store
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Data Store"
 
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project. USE KEBAB-CASE ONLY.
+    Description: "The name of the project. USE KEBAB-CASE ONLY."
 
 Resources:
   S3OriginBucket:
-    Type: AWS::S3::Bucket
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub ${ProjectName}-origin-bucket
+      BucketName: !Sub "${ProjectName}-origin-bucket"
       PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
-      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }]
 
   S3LogsBucket:
-    Type: AWS::S3::Bucket
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub ${ProjectName}-logs-bucket
+      BucketName: !Sub "${ProjectName}-logs-bucket"
       PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
       OwnershipControls:
-        Rules: [{ ObjectOwnership: BucketOwnerPreferred }]
+        Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }]
       LifecycleConfiguration:
         Rules:
-          - Id: !Sub ${ProjectName}-logs-lifecycle-rule
-            Status: Enabled
+          - Id: !Sub "${ProjectName}-logs-lifecycle-rule"
+            Status: "Enabled"
             Transitions:
-              - StorageClass: STANDARD_IA
+              - StorageClass: "STANDARD_IA"
                 TransitionInDays: 30
             ExpirationInDays: 90
-      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }]
 
   S3WAFLogsBucket:
-    Type: AWS::S3::Bucket
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub aws-waf-logs-${ProjectName}-bucket
+      BucketName: !Sub "aws-waf-logs-${ProjectName}-bucket"
       PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
       OwnershipControls:
-        Rules: [{ ObjectOwnership: BucketOwnerPreferred }]
+        Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }]
       LifecycleConfiguration:
         Rules:
-          - Id: !Sub ${ProjectName}-waf-logs-lifecycle-rule
-            Status: Enabled
+          - Id: !Sub "${ProjectName}-waf-logs-lifecycle-rule"
+            Status: "Enabled"
             Transitions:
-              - StorageClass: STANDARD_IA
+              - StorageClass: "STANDARD_IA"
                 TransitionInDays: 30
             ExpirationInDays: 90
-      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }]
 
 Outputs:
   S3OriginBucketName:
-    Description: Name of the origin bucket
+    Description: "Name of the origin bucket"
     Value: !Ref S3OriginBucket
     Export:
-      Name: !Sub ${ProjectName}-S3OriginBucketName
+      Name: !Sub "${ProjectName}-S3OriginBucketName"
   
   S3OriginBucketDomainName:
-    Description: Domain name of the origin bucket
+    Description: "Domain name of the origin bucket"
     Value: !GetAtt S3OriginBucket.DomainName
     Export:
-      Name: !Sub ${ProjectName}-S3OriginBucketDomainName
+      Name: !Sub "${ProjectName}-S3OriginBucketDomainName"
 
   S3OriginBucketArn:
-    Description: Arn of the origin bucket
+    Description: "Arn of the origin bucket"
     Value: !GetAtt S3OriginBucket.Arn
     Export:
-      Name: !Sub ${ProjectName}-S3OriginBucketArn
+      Name: !Sub "${ProjectName}-S3OriginBucketArn"
 
   S3LogsBucketDomainName:
-    Description: Domain name of the logs bucket
+    Description: "Domain name of the logs bucket"
     Value: !GetAtt S3LogsBucket.DomainName
     Export:
-      Name: !Sub ${ProjectName}-S3LogsBucketDomainName
+      Name: !Sub "${ProjectName}-S3LogsBucketDomainName"
 
   S3WAFLogsBucketArn:
-    Description: Arn of the WAF logs bucket
+    Description: "Arn of the WAF logs bucket"
     Value: !GetAtt S3WAFLogsBucket.Arn
     Export:
-      Name: !Sub ${ProjectName}-S3WAFLogsBucketArn
+      Name: !Sub "${ProjectName}-S3WAFLogsBucketArn"
