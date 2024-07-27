@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: Template to create CloudFront distribution with S3 origin using OAC, ACM SSL certificate, and WAF protection
+AWSTemplateFormatVersion: 2010-09-09
+Description: CDN
 
 Parameters:
   ProjectName:
@@ -11,8 +11,8 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub "${ProjectName}-oac"
-        OriginAccessControlOriginType: "s3"
+        Name: !Sub ${ProjectName}-oac
+        OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
 
@@ -97,3 +97,30 @@ Resources:
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         HostedZoneId: Z2FDTNDATAQYW2  # CloudFront Hosted Zone ID
+
+  BasicAuthFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: BasicAuthFunction
+      FunctionConfig:
+        Comment: Basic authentication
+        Runtime: cloudfront-js-2.0
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          const request = event.request
+          const headers = request.headers
+          const authString = 'Basic ' + 'cThBcE1vZmN1dExBOmJUR1IwWXJGZjFHOQ==' // Change here
+
+          if (!headers.authorization || headers.authorization.value !== authString) {
+            return {
+              statusCode: 401,
+              statusDescription: 'Unauthorized',
+              headers: {
+                'www-authenticate': { value: 'Basic' }
+              }
+            };
+          }
+
+          return request;
+        }
