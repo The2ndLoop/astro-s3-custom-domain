@@ -1,45 +1,45 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: Certificate
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Certificate"
 
 Parameters:
   ProjectName:
     Type: String
-    Description: The name of the project. USE KEBAB-CASE ONLY.
+    Description: "The name of the project. USE KEBAB-CASE ONLY."
   DomainName:
     Type: String
-    Description: The domain name of the project.
+    Description: "The domain name of the project."
   HostedZoneId:
     Type: String
-    Description: The hosted zone id of the domain.
+    Description: "The hosted zone id of the domain."
 
 Resources:
   Certificate:
-    Type: AWS::CertificateManager::Certificate
+    Type: "AWS::CertificateManager::Certificate"
     Properties:
       DomainName: !Ref DomainName
       SubjectAlternativeNames:
         - !Sub "*.${DomainName}"
-      ValidationMethod: DNS
+      ValidationMethod: "DNS"
       DomainValidationOptions:
         - DomainName: !Ref DomainName
           HostedZoneId: !Ref HostedZoneId
-      Tags: [{ Key: Project, Value: !Ref ProjectName }]
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }]
     
 Outputs:
   CertificateArn:
-    Description: Arn of the certificate
+    Description: "Arn of the certificate"
     Value: !Ref Certificate 
     Export:
-      Name: !Sub ${ProjectName}-CertificateArn
+      Name: !Sub "${ProjectName}-CertificateArn"
   
   DomainName:
-    Description: DomainName you entered.
+    Description: "DomainName you entered."
     Value: !Ref DomainName
     Export:
-      Name: !Sub ${ProjectName}-DomainName
+      Name: !Sub "${ProjectName}-DomainName"
 
   HostedZoneId:
-    Description: HostedZoneId name you entered.
+    Description: "HostedZoneId name you entered."
     Value: !Ref HostedZoneId
     Export:
-      Name: !Sub ${ProjectName}-HostedZoneId
+      Name: !Sub "${ProjectName}-HostedZoneId"
