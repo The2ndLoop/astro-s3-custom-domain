@@ -5,6 +5,16 @@ Parameters:
   ProjectName:
     Type: String
     Description: "The name of the project. USE KEBAB-CASE ONLY."
+  UseWAF:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    Description: "If this param is true, you must create the stack of WAF in advance."
+
+Conditions:
+  UseWAF: !Equals [!Ref UseWAF, true]
 
 Resources:
   Oac:
@@ -43,61 +53,6 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
-  CloudFrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
-    Properties:
-      DistributionConfig:
-        Comment: !Sub "${ProjectName}-cloudfront"
-        Origins:
-          - Id: "S3Origin"
-            DomainName: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketDomainName" }
-            OriginAccessControlId: !GetAtt Oac.Id
-            S3OriginConfig:
-              OriginAccessIdentity: ""
-        DefaultCacheBehavior:
-          TargetOriginId: "S3Origin"
-          AllowedMethods: 
-            - "GET"
-            - "HEAD"
-          CachedMethods:
-            - "GET"
-            - "HEAD"
-          ViewerProtocolPolicy: "redirect-to-https"
-          CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6" #CachingOptimized
-          Compress: true
-        DefaultRootObject: "index.html"
-        CustomErrorResponses:
-          - ErrorCode: 404
-            ResponsePagePath: "/index.html"
-            ResponseCode: 200
-            ErrorCachingMinTTL: 0
-        Enabled: true
-        IPV6Enabled: true
-        HttpVersion: "http2"
-        PriceClass: "PriceClass_100"
-        WebACLId: { Fn::ImportValue: !Sub "${ProjectName}-WebACLArn" }
-        ViewerCertificate:
-          SslSupportMethod: "sni-only"
-          MinimumProtocolVersion: "TLSv1.2_2021"
-          AcmCertificateArn: { Fn::ImportValue: !Sub "${ProjectName}-CertificateArn" }
-        Aliases:
-          - { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
-        Logging:
-          Bucket: { Fn::ImportValue: !Sub "${ProjectName}-S3LogsBucketDomainName" }
-          IncludeCookies: true
-          Prefix: "CloudFront"
-      Tags: [{ Key: "Project", Value: !Ref ProjectName }] 
-
-  Route53RecordSet:
-    Type: "AWS::Route53::RecordSet"
-    Properties:
-      HostedZoneId: { Fn::ImportValue: !Sub "${ProjectName}-HostedZoneId" }
-      Name: { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
-      Type: "A"
-      AliasTarget:
-        DNSName: !GetAtt CloudFrontDistribution.DomainName
-        HostedZoneId: "Z2FDTNDATAQYW2"  # CloudFront Hosted Zone ID
-
   BasicAuthFunction:
     Type: "AWS::CloudFront::Function"
     Properties:
@@ -124,3 +79,61 @@ Resources:
 
           return request;
         }
+
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${ProjectName}-cloudfront"
+        Origins:
+          - Id: "S3Origin"
+            DomainName: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketDomainName" }
+            OriginAccessControlId: !GetAtt Oac.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: "S3Origin"
+          AllowedMethods: 
+            - "GET"
+            - "HEAD"
+          CachedMethods:
+            - "GET"
+            - "HEAD"
+          ViewerProtocolPolicy: "redirect-to-https"
+          CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6" #CachingOptimized
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt BasicAuthFunction.FunctionARN
+        DefaultRootObject: "index.html"
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponsePagePath: "/index.html"
+            ResponseCode: 200
+            ErrorCachingMinTTL: 0
+        Enabled: true
+        IPV6Enabled: true
+        HttpVersion: "http2"
+        PriceClass: "PriceClass_100"
+        WebACLId: !If [UseWAF, { Fn::ImportValue: !Sub "${ProjectName}-WebACLArn" }, !Ref AWS::NoValue]
+        ViewerCertificate:
+          SslSupportMethod: "sni-only"
+          MinimumProtocolVersion: "TLSv1.2_2021"
+          AcmCertificateArn: { Fn::ImportValue: !Sub "${ProjectName}-CertificateArn" }
+        Aliases:
+          - { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
+        Logging:
+          Bucket: { Fn::ImportValue: !Sub "${ProjectName}-S3LogsBucketDomainName" }
+          IncludeCookies: true
+          Prefix: "CloudFront"
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }] 
+
+  Route53RecordSet:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId: { Fn::ImportValue: !Sub "${ProjectName}-HostedZoneId" }
+      Name: { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
+      Type: "A"
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: "Z2FDTNDATAQYW2"  # CloudFront Hosted Zone ID
