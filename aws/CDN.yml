@@ -12,6 +12,13 @@ Parameters:
       - false
     Default: false
     Description: "If this param is true, you must create the stack of WAF in advance."
+  Username:
+    Type: String
+    Description: Username for Basic Auth
+  Password:
+    Type: String
+    Description: Password for Basic Auth
+    NoEcho: true
 
 Conditions:
   UseWAF: !Equals [!Ref UseWAF, true]
@@ -34,22 +41,24 @@ Resources:
         Statement:
           - Sid: "allow-cloudfront-to-get-object"
             Effect: "Allow"
-            Principal: 
+            Principal:
               Service: "cloudfront.amazonaws.com"
             Action: "s3:GetObject"
             Resource: !Sub
               - "${BucketArn}/*"
-              - BucketArn: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
-            Condition: 
+              - BucketArn:
+                  { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
+            Condition:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
           - Sid: "allow-cloudfront-to-list-bucket" # to avoid getting 403 error response instead of 404
             Effect: "Allow"
-            Principal: 
+            Principal:
               Service: "cloudfront.amazonaws.com"
             Action: "s3:ListBucket"
-            Resource: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
-            Condition: 
+            Resource:
+              { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketArn" }
+            Condition:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
 
@@ -61,24 +70,25 @@ Resources:
         Comment: "Basic authentication"
         Runtime: "cloudfront-js-2.0"
       AutoPublish: true
-      FunctionCode: |
-        function handler(event) {
-          const request = event.request
-          const headers = request.headers
-          const authString = 'Basic ' + 'cThBcE1vZmN1dExBOmJUR1IwWXJGZjFHOQ==' // Change here
+      FunctionCode: !Sub
+        - |
+          function handler(event) {
+            const request = event.request
+            const headers = request.headers
 
-          if (!headers.authorization || headers.authorization.value !== authString) {
-            return {
-              statusCode: 401,
-              statusDescription: 'Unauthorized',
-              headers: {
-                'www-authenticate': { value: 'Basic' }
-              }
-            };
+            if (!headers.authorization || headers.authorization.value !== "${AuthString}") {
+              return {
+                statusCode: 401,
+                statusDescription: 'Unauthorized',
+                headers: {
+                  'www-authenticate': { value: 'Basic' }
+                }
+              };
+            }
+
+            return request;
           }
-
-          return request;
-        }
+        - AuthString: !Base64 { Fn::Sub: "${Username}:${Password}" }
 
   CloudFrontDistribution:
     Type: "AWS::CloudFront::Distribution"
@@ -87,13 +97,16 @@ Resources:
         Comment: !Sub "${ProjectName}-cloudfront"
         Origins:
           - Id: "S3Origin"
-            DomainName: { Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketDomainName" }
+            DomainName:
+              {
+                Fn::ImportValue: !Sub "${ProjectName}-S3OriginBucketDomainName",
+              }
             OriginAccessControlId: !GetAtt Oac.Id
             S3OriginConfig:
               OriginAccessIdentity: ""
         DefaultCacheBehavior:
           TargetOriginId: "S3Origin"
-          AllowedMethods: 
+          AllowedMethods:
             - "GET"
             - "HEAD"
           CachedMethods:
@@ -115,18 +128,25 @@ Resources:
         IPV6Enabled: true
         HttpVersion: "http2"
         PriceClass: "PriceClass_100"
-        WebACLId: !If [UseWAF, { Fn::ImportValue: !Sub "${ProjectName}-WebACLArn" }, !Ref AWS::NoValue]
+        WebACLId:
+          !If [
+            UseWAF,
+            { Fn::ImportValue: !Sub "${ProjectName}-WebACLArn" },
+            !Ref AWS::NoValue,
+          ]
         ViewerCertificate:
           SslSupportMethod: "sni-only"
           MinimumProtocolVersion: "TLSv1.2_2021"
-          AcmCertificateArn: { Fn::ImportValue: !Sub "${ProjectName}-CertificateArn" }
+          AcmCertificateArn:
+            { Fn::ImportValue: !Sub "${ProjectName}-CertificateArn" }
         Aliases:
           - { Fn::ImportValue: !Sub "${ProjectName}-DomainName" }
         Logging:
-          Bucket: { Fn::ImportValue: !Sub "${ProjectName}-S3LogsBucketDomainName" }
+          Bucket:
+            { Fn::ImportValue: !Sub "${ProjectName}-S3LogsBucketDomainName" }
           IncludeCookies: true
           Prefix: "CloudFront"
-      Tags: [{ Key: "Project", Value: !Ref ProjectName }] 
+      Tags: [{ Key: "Project", Value: !Ref ProjectName }]
 
   Route53RecordSet:
     Type: "AWS::Route53::RecordSet"
@@ -136,4 +156,4 @@ Resources:
       Type: "A"
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
-        HostedZoneId: "Z2FDTNDATAQYW2"  # CloudFront Hosted Zone ID
+        HostedZoneId: "Z2FDTNDATAQYW2" # CloudFront Hosted Zone ID
