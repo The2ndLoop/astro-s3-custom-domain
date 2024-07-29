@@ -1,0 +1,38 @@
+{
+  "yaml.schemas": {
+    "https://d33vqc0rt9ld30.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json": [
+      "*.cf.yaml",
+      "*.cf.yml",
+      "cloud*formation/*.yaml",
+      "cloud*formation/*.yml"
+    ]
+  },
+  "yaml.customTags": [
+    "!And",
+    "!And sequence",
+    "!If",
+    "!If sequence",
+    "!Not",
+    "!Not sequence",
+    "!Equals",
+    "!Equals sequence",
+    "!Or",
+    "!Or sequence",
+    "!FindInMap sequence",
+    "!Base64",
+    "!Base64 mapping",
+    "!Cidr",
+    "!Cidr sequence",
+    "!Ref",
+    "!Sub",
+    "!Sub sequence",
+    "!GetAtt",
+    "!GetAZs",
+    "!ImportValue",
+    "!Select",
+    "!Select sequence",
+    "!Split",
+    "!Split sequence",
+    "!Join sequence"
+  ]
+}

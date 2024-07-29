@@ -24,14 +24,14 @@ Resources:
         - DomainName: !Ref DomainName
           HostedZoneId: !Ref HostedZoneId
       Tags: [{ Key: "Project", Value: !Ref ProjectName }]
-    
+
 Outputs:
   CertificateArn:
     Description: "Arn of the certificate"
-    Value: !Ref Certificate 
+    Value: !Ref Certificate
     Export:
       Name: !Sub "${ProjectName}-CertificateArn"
-  
+
   DomainName:
     Description: "DomainName you entered."
     Value: !Ref DomainName

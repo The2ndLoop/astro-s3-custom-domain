@@ -19,36 +19,36 @@ Conditions:
 Resources:
   AllowedIPSet:
     Type: "AWS::WAFv2::IPSet"
-    Properties: 
+    Properties:
       Name: !Sub "${ProjectName}-allowed-ip-set"
       Scope: "CLOUDFRONT"
       IPAddressVersion: "IPV4"
-      Addresses: 
+      Addresses:
         - "192.168.0.1/32"
 
   WebACL:
     Type: "AWS::WAFv2::WebACL"
-    Properties: 
+    Properties:
       DefaultAction: !If [UseIPRestriction, { Block: {} }, { Allow: {} }]
       Name: !Sub "${ProjectName}-web-acl"
       Scope: "CLOUDFRONT"
-      VisibilityConfig: 
+      VisibilityConfig:
         CloudWatchMetricsEnabled: true
         SampledRequestsEnabled: true
         MetricName: !Sub "${ProjectName}-web-acl"
-      Rules: 
+      Rules:
         - Name: "AWSManagedRulesAmazonIpReputationList"
           Priority: 10
-          OverrideAction: { None: {} } 
-          Statement: 
+          OverrideAction: { None: {} }
+          Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
               Name: "AWSManagedRulesAmazonIpReputationList"
-          VisibilityConfig: 
+          VisibilityConfig:
             CloudWatchMetricsEnabled: true
             SampledRequestsEnabled: true
             MetricName: "AWSManagedRulesAmazonIpReputationList"
-        - !If 
+        - !If
           - UseIPRestriction
           - Name: "AllowedIPSet"
             Priority: 20
@@ -56,7 +56,7 @@ Resources:
             Statement:
               IPSetReferenceStatement:
                 Arn: !GetAtt AllowedIPSet.Arn
-            VisibilityConfig: 
+            VisibilityConfig:
               CloudWatchMetricsEnabled: true
               SampledRequestsEnabled: true
               MetricName: "AllowedIPSet"
@@ -66,7 +66,8 @@ Resources:
     Type: "AWS::WAFv2::LoggingConfiguration"
     Properties:
       ResourceArn: !GetAtt WebACL.Arn
-      LogDestinationConfigs: [ Fn::ImportValue: !Sub "${ProjectName}-S3WAFLogsBucketArn" ]
+      LogDestinationConfigs:
+        [Fn::ImportValue: !Sub "${ProjectName}-S3WAFLogsBucketArn"]
 
 Outputs:
   WebACLArn:

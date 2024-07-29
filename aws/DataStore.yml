@@ -11,14 +11,26 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Sub "${ProjectName}-origin-bucket"
-      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      PublicAccessBlockConfiguration:
+        {
+          BlockPublicAcls: true,
+          BlockPublicPolicy: true,
+          IgnorePublicAcls: true,
+          RestrictPublicBuckets: true,
+        }
       Tags: [{ Key: "Project", Value: !Ref ProjectName }]
 
   S3LogsBucket:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Sub "${ProjectName}-logs-bucket"
-      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      PublicAccessBlockConfiguration:
+        {
+          BlockPublicAcls: true,
+          BlockPublicPolicy: true,
+          IgnorePublicAcls: true,
+          RestrictPublicBuckets: true,
+        }
       OwnershipControls:
         Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }]
       LifecycleConfiguration:
@@ -35,7 +47,13 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Sub "aws-waf-logs-${ProjectName}-bucket"
-      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      PublicAccessBlockConfiguration:
+        {
+          BlockPublicAcls: true,
+          BlockPublicPolicy: true,
+          IgnorePublicAcls: true,
+          RestrictPublicBuckets: true,
+        }
       OwnershipControls:
         Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }]
       LifecycleConfiguration:
@@ -54,7 +72,7 @@ Outputs:
     Value: !Ref S3OriginBucket
     Export:
       Name: !Sub "${ProjectName}-S3OriginBucketName"
-  
+
   S3OriginBucketDomainName:
     Description: "Domain name of the origin bucket"
     Value: !GetAtt S3OriginBucket.DomainName
