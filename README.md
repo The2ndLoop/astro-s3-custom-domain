@@ -1,0 +1,1 @@
+Astroで作ったWebサイトをAWSにデプロイするためのCloudFormationテンプレート

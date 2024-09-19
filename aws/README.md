@@ -1,5 +1,7 @@
 # astro-s3-custom-domain
 
+| ファイル名 | 内容 |
+| --- | --- |
 | DataStore | S3を作成する |
 | Certificate | SSL証明書作成する |
 | WAF | WAFを作成する |
